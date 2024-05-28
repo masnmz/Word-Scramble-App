@@ -15,6 +15,8 @@ struct ContentView: View {
     @State private var errorTitle = ""
     @State private var errorMessage = ""
     @State private var showingError = false
+    
+    @State private var wordScore = 0
 
     var body: some View {
         NavigationStack {
@@ -34,8 +36,18 @@ struct ContentView: View {
                         }
                     }
                 }
+                Section {
+                    Text("Your Score: \(wordScore)")
+                }
             }
             .navigationTitle(rootWord)
+            .toolbar {
+                Button("New Word", action: startGame)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.orange)
+            .scrollContentBackground(.hidden)
+            .background(RadialGradient(colors: [.yellow, .indigo, .white], center: .center, startRadius: 50, endRadius: 500))
             .onSubmit(addNewWord)
             .onAppear(perform: startGame)
             .alert(errorTitle, isPresented: $showingError){
@@ -53,8 +65,16 @@ struct ContentView: View {
         
         guard answer.count > 0 else {return}
         
-//        extra validation to come
         
+        guard wordLength(word: answer) else {
+            wordError(title: "Insufficient Character", message: "Word must have at least three character!")
+            return
+        }
+        guard wordItself(word: answer) else {
+            wordError(title: "Repetition", message: "You can't enter the word itself! Cheating is not good!!")
+            return
+        }
+            
         guard isOriginal(word: answer) else {
             wordError(title: "Word used already", message: "Be more original")
             return
@@ -74,6 +94,7 @@ struct ContentView: View {
         withAnimation {
             usedWords.insert(answer, at: 0)
         }
+        wordScore += answer.utf16.count
         newWord = ""
     }
     
@@ -82,6 +103,8 @@ struct ContentView: View {
             if let startWords = try? String(contentsOf: startWordUrl) {
                 let allWords = startWords.components(separatedBy: "\n")
                 rootWord = allWords.randomElement() ?? "silkworm"
+                wordScore = 0
+                usedWords.removeAll()
                 return
             }
         }
@@ -117,6 +140,23 @@ struct ContentView: View {
         errorTitle = title
         errorMessage = message
         showingError = true
+    }
+    
+    func wordLength(word: String) -> Bool {
+        let charCount = word.utf16.count
+        if charCount > 2 {
+            return true
+        } else {
+            return false
+        }
+    }
+    
+    func wordItself(word: String) -> Bool {
+        if word != rootWord {
+            return true
+        } else {
+            return false
+        }
     }
 }
 
